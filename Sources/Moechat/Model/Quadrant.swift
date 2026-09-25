@@ -9,12 +9,13 @@ enum Quadrant: Int, CaseIterable, Identifiable {
 
     var id: Int { rawValue }
 
-    var title: String {
+    /// 标题随语言变，所以存**键**不存成品字符串。取值用 `catalog[quadrant.titleKey]`。
+    var titleKey: KeyPath<Catalog, String> {
         switch self {
-        case .first: "肉体"
-        case .second: "知识"
-        case .third: "关系"
-        case .fourth: "持有物"
+        case .first: \.quadrantFirst
+        case .second: \.quadrantSecond
+        case .third: \.quadrantThird
+        case .fourth: \.quadrantFourth
         }
     }
 
@@ -31,16 +32,16 @@ enum Quadrant: Int, CaseIterable, Identifiable {
     var apps: [SubApp] {
         switch self {
         case .first:
-            [SubApp(id: "body", title: "人体", symbol: "figure.stand")]
+            [SubApp(id: "body", title: \.appBody, symbol: "figure.stand")]
         case .second:
             [
-                SubApp(id: "chat", title: "消息", symbol: "bubble.left"),
-                SubApp(id: "stash", title: "收藏", symbol: "bookmark")
+                SubApp(id: "msglist", title: \.appMsglist, symbol: "bubble.left"),
+                SubApp(id: "stash", title: \.appStash, symbol: "bookmark"),
             ]
         case .third:
-            [SubApp(id: "people", title: "人际", symbol: "person.2")]
+            [SubApp(id: "people", title: \.appPeople, symbol: "person.2")]
         case .fourth:
-            [SubApp(id: "wallet", title: "资产", symbol: "creditcard")]
+            [SubApp(id: "wallet", title: \.appWallet, symbol: "creditcard")]
         }
     }
 
@@ -49,7 +50,15 @@ enum Quadrant: Int, CaseIterable, Identifiable {
 
 /// 子应用。它是一个 Web 应用，跑在宿主的 WebAppContainer 里。
 struct SubApp: Identifiable, Hashable {
+    /// 仓库名，同时是 `moechat-app://<id>/…` 的 authority。
     let id: String
-    let title: String
+    /// 文案键。不存成品字符串——语言是渲染期的事。
+    let title: KeyPath<Catalog, String>
     let symbol: String
+    /// 入口文件，相对该子应用自己的 origin。
+    var entry: String = "index.html"
+
+    /// 子应用由 id 唯一确定，文案键不参与相等性。
+    static func == (lhs: SubApp, rhs: SubApp) -> Bool { lhs.id == rhs.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }

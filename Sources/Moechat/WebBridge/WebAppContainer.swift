@@ -11,6 +11,9 @@ struct WebAppContainer: NSViewRepresentable {
     let context: HostContext
     let onMessage: (BridgeMessage) -> Void
 
+    /// 容器里嵌的是 Web 内容，不是 SwiftUI 视图，语言得在这里定。
+    @Environment(\.catalog) private var catalog
+
     func makeCoordinator() -> Coordinator {
         Coordinator(onMessage: onMessage)
     }
@@ -28,6 +31,8 @@ struct WebAppContainer: NSViewRepresentable {
 
         let config = WKWebViewConfiguration()
         config.userContentController = controller
+        // 子应用一律走 moechat-app:// 这个本地源，不留 file:// 后门。
+        config.setURLSchemeHandler(SubAppSchemeHandler(), forURLScheme: SubAppSchemeHandler.scheme)
 
         let webView = WKWebView(frame: .zero, configuration: config)
         // 底色设成亮蓝只为诊断：如果画面变蓝，说明 WebView 活着但 HTML 没加载成功。
@@ -36,13 +41,31 @@ struct WebAppContainer: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context ctx: Context) {
-        // 在视图真正进入窗口后加载，makeNSView 阶段加载容易落空。
-        guard !ctx.coordinator.hasLoaded else { return }
-        ctx.coordinator.hasLoaded = true
-        webView.loadHTMLString(Self.placeholderHTML(for: app), baseURL: nil)
+        // updateNSView 每次状态变化都会调，按 app.id 判断是否真要换页；
+        // 否则切子应用时内容不更新，而输入框里每敲一个字都会重载页面。
+        guard ctx.coordinator.loadedAppId != app.id else { return }
+        ctx.coordinator.loadedAppId = app.id
+
+        if SubAppSchemeHandler.isInstalled(app) {
+            webView.load(URLRequest(url: SubAppSchemeHandler.url(for: app)))
+        } else {
+            // 明确说清缺什么、该放哪，不留白屏。
+            webView.loadHTMLString(
+                Self.missingHTML(
+                    title: String(format: catalog.subappMissingTitle, app.id),
+                    expected: String(
+                        format: catalog.subappMissingExpected,
+                        SubAppSchemeHandler.path(for: app)
+                    ),
+                    source: "\(SubAppSchemeHandler.scheme)://\(app.id)/\(app.entry)"
+                ),
+                baseURL: nil
+            )
+        }
     }
 
-    /// 注入宿主上下文 + 通信函数。
+    /// 注入宿主上下文 + 通信函数。必须在 documentStart 执行——
+    /// 子应用的模块脚本是 deferred，跑起来时 `window.moechat` 必须已经在。
     static func bootstrapScript(_ context: HostContext) -> String {
         let encoded = (try? JSONEncoder().encode(context))
             .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
@@ -61,8 +84,8 @@ struct WebAppContainer: NSViewRepresentable {
         """
     }
 
-    /// 子应用真正实现之前，先用这个占位页面验证通路。
-    static func placeholderHTML(for app: SubApp) -> String {
+    /// 子应用没装上时的提示页。
+    private static func missingHTML(title: String, expected: String, source: String) -> String {
         """
         <!doctype html>
         <html><head><meta charset="utf-8">
@@ -73,29 +96,25 @@ struct WebAppContainer: NSViewRepresentable {
             font: 13px/1.6 -apple-system, "PingFang SC", sans-serif;
             display: flex; align-items: center; justify-content: center;
           }
-          .box { text-align: center; }
-          .sub { color: rgba(255,255,255,.38); font-size: 12px; margin-top: 6px; }
+          .box { text-align: center; padding: 0 24px; }
+          .sub { color: rgba(255,255,255,.38); font-size: 12px; margin-top: 8px;
+                 overflow-wrap: anywhere; }
           code { font-family: ui-monospace, Menlo, monospace; color: #3E9BD6; }
         </style></head>
         <body>
           <div class="box">
-            <div style="font-size:15px;font-weight:500;">\(app.title)</div>
-            <div class="sub">Web 子应用占位 · 将由 <code>moechat-app-\(app.id)</code> 提供</div>
-            <div class="sub" id="ctx" style="margin-top:14px;">宿主上下文读取中…</div>
+            <div style="font-size:15px;font-weight:500;">\(title)</div>
+            <div class="sub"><code>\(expected)</code></div>
+            <div class="sub"><code>\(source)</code></div>
           </div>
-          <script>
-            var c = window.moechat || {};
-            document.getElementById('ctx').textContent =
-              '主体 ' + (c.subjectName || '?') + ' · 时空 ' + (c.spacetime || '?') +
-              ' · 主题 ' + (c.theme || '?');
-          </script>
         </body></html>
         """
     }
 
     final class Coordinator: NSObject, WKScriptMessageHandler {
         let onMessage: (BridgeMessage) -> Void
-        var hasLoaded = false
+        /// 已经载入的子应用 id。nil 表示还没载过。
+        var loadedAppId: String?
 
         init(onMessage: @escaping (BridgeMessage) -> Void) {
             self.onMessage = onMessage

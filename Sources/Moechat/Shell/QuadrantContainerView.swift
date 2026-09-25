@@ -9,6 +9,8 @@ struct QuadrantContainerView: View {
     let onTap: () -> Void
     let onAppTap: (SubApp) -> Void
 
+    @Environment(\.catalog) private var catalog
+
     /// 收起态尺寸：底栏里的一格。
     private let collapsedSize = CGSize(width: 84, height: 108)
 
@@ -65,7 +67,7 @@ struct QuadrantContainerView: View {
         )
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
         .onTapGesture(perform: onTap)
-        .help(quadrant.title)
+        .help(catalog[quadrant.titleKey])
     }
 
     // MARK: - 收起态
@@ -80,9 +82,13 @@ struct QuadrantContainerView: View {
                 Circle()
                     .fill(quadrant.accent)
                     .frame(width: 5, height: 5)
-                Text(quadrant.title)
+                Text(catalog[quadrant.titleKey])
                     .font(.system(size: 10.5, weight: .medium))
                     .foregroundStyle(Theme.secondaryText)
+                    // 收起态容器只有 84pt 宽，英文的 "Possessions" 会折成两行并撑出容器。
+                    // 限一行 + 尾部省略，与 Android 侧同一行为。
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
         }
         .padding(11)
@@ -152,9 +158,12 @@ struct QuadrantContainerView: View {
                 Image(systemName: app.symbol)
                     .font(.system(size: 22, weight: .regular))
                     .foregroundStyle(Color.white.opacity(0.92))
-                Text(app.title)
+                Text(catalog[app.title])
                     .font(.system(size: 9.5, weight: .medium))
                     .foregroundStyle(Color.white.opacity(0.80))
+                    // 格子 68pt 宽，长词同样要限一行。
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
             .frame(width: cellSize, height: cellSize)
             .background(

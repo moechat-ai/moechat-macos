@@ -25,6 +25,18 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/Moechat" "$APP/Contents/MacOS/Moechat"
 
+# 子应用产物。宿主不内置子应用源码，只把它构建好的 dist 搬进来——与 Android 侧
+# 的 syncSubApps 同一策略。缺了就直接报错退出并说清该跑哪条命令，
+# 不留「打开是 404」这种无头绪的失败。
+MSGSLIST_DIST="$ROOT/../msglist/dist"
+if [ ! -d "$MSGSLIST_DIST" ]; then
+    echo "错误：子应用 msglist 未构建：$MSGSLIST_DIST 不存在" >&2
+    echo "先在 ${MSGSLIST_DIST%/dist} 执行：npm install && npm run build" >&2
+    exit 1
+fi
+mkdir -p "$APP/Contents/Resources/apps"
+cp -R "$MSGSLIST_DIST" "$APP/Contents/Resources/apps/msglist"
+
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -40,6 +52,15 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSPrincipalClass</key><string>NSApplication</string>
+    <!-- 宿主自己的文案在本包里是类型化的 Swift 目录（见 i18n/Catalog.swift），
+         不用 .lproj。但 AppKit 自己产出的系统菜单（文件 / 编辑 / 窗口 / 帮助）
+         由系统提供，要让它按用户语言挑，必须在 bundle 里声明支持哪些语言。 -->
+    <key>CFBundleDevelopmentRegion</key><string>zh-Hans</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>zh-Hans</string>
+        <string>en</string>
+    </array>
 </dict>
 </plist>
 PLIST

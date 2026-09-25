@@ -22,6 +22,8 @@ struct TopBar: View {
 struct SubjectBadge: View {
     let subject: Subject
 
+    @Environment(\.catalog) private var catalog
+
     var body: some View {
         Button {
             // TODO: 打开主体切换面板
@@ -42,7 +44,7 @@ struct SubjectBadge: View {
             }
         }
         .buttonStyle(.plain)
-        .help("切换主体")
+        .help(catalog.topbarSwitchSubject)
     }
 }
 
@@ -52,9 +54,11 @@ struct AddressField: View {
     @State private var text: String = ""
     @FocusState private var isFocused: Bool
 
+    @Environment(\.catalog) private var catalog
+
     var body: some View {
         HStack(spacing: 6) {
-            TextField("时空坐标", text: $text)
+            TextField(catalog.topbarAddressPlaceholder, text: $text)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(Theme.addressText)
@@ -83,11 +87,13 @@ struct AddressField: View {
 }
 
 struct NavigationButtons: View {
+    @Environment(\.catalog) private var catalog
+
     var body: some View {
         HStack(spacing: 4) {
-            navButton("chevron.left", help: "后退")
-            navButton("chevron.right", help: "前进")
-            navButton("arrow.clockwise", help: "刷新")
+            navButton("chevron.left", help: catalog.topbarBack)
+            navButton("chevron.right", help: catalog.topbarForward)
+            navButton("arrow.clockwise", help: catalog.topbarReload)
         }
     }
 

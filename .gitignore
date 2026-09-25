@@ -14,3 +14,6 @@ DerivedData/
 
 # 打包产物
 build/
+
+# OMC 运行时状态
+.omc/
