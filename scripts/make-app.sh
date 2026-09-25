@@ -15,6 +15,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="$ROOT/build/Moechat.app"
 
 cd "$ROOT"
+
+# 注意：`swift build --show-bin-path` 只打印路径、不触发构建。
+# 必须显式构建一次，否则会打包到上一次的旧二进制。
+swift build -c "$CONFIG"
 BIN_DIR="$(swift build -c "$CONFIG" --show-bin-path)"
 
 rm -rf "$APP"

@@ -21,23 +21,48 @@ struct RootView: View {
         }
     }
 
-    /// 子应用将来在这里以 Web 视图呈现。现在先显示当前所处的应用。
+    /// 子应用以 Web 视图呈现，各子应用是独立的 Web 仓库。
     private var contentArea: some View {
         ZStack {
             if let app = activeApp {
-                VStack(spacing: 10) {
-                    Image(systemName: app.symbol)
-                        .font(.system(size: 34, weight: .light))
-                        .foregroundStyle(Theme.secondaryText)
-                    Text(app.title)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(Theme.primaryText)
-                    Text("Web 子应用将在此加载")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Theme.faintText)
-                }
+                WebAppContainer(
+                    app: app,
+                    context: hostContext,
+                    onMessage: handleBridgeMessage
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// 宿主交给子应用的上下文。
+    private var hostContext: HostContext {
+        HostContext(
+            subjectId: subject.id,
+            subjectName: subject.name,
+            spacetime: address.text,
+            theme: "dark",
+            locale: "zh-Hans"
+        )
+    }
+
+    /// 子应用发回来的请求。
+    private func handleBridgeMessage(_ message: BridgeMessage) {
+        switch message.kind {
+        case .navigate:
+            // TODO: 解析 message.payload["address"] 并跳转
+            break
+        case .openApp:
+            // TODO: 按 payload["id"] 找到子应用并切换
+            break
+        case .log:
+            // TODO: 写入主体日志
+            break
+        case .close:
+            activeApp = nil
+            expanded = nil
+        case .unknown:
+            break
+        }
     }
 }
