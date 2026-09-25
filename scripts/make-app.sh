@@ -1,0 +1,43 @@
+#!/bin/sh
+# 把 SwiftPM 构建出的可执行文件打包成 macOS .app bundle。
+#
+# 为什么需要它：SwiftPM 直接产出的可执行文件不是 .app，缺少 Info.plist，
+# macOS 的 GUI 生命周期（NSApplication）起不来，跑一下就退出。
+#
+# 用法：
+#   ./scripts/make-app.sh          # debug
+#   ./scripts/make-app.sh release
+
+set -e
+
+CONFIG="${1:-debug}"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+APP="$ROOT/build/Moechat.app"
+
+cd "$ROOT"
+BIN_DIR="$(swift build -c "$CONFIG" --show-bin-path)"
+
+rm -rf "$APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp "$BIN_DIR/Moechat" "$APP/Contents/MacOS/Moechat"
+
+cat > "$APP/Contents/Info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key><string>Moechat</string>
+    <key>CFBundleDisplayName</key><string>moechat</string>
+    <key>CFBundleIdentifier</key><string>ai.moechat.macos</string>
+    <key>CFBundleExecutable</key><string>Moechat</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>0.1.0</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>LSMinimumSystemVersion</key><string>14.0</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSPrincipalClass</key><string>NSApplication</string>
+</dict>
+</plist>
+PLIST
+
+echo "已生成 $APP"

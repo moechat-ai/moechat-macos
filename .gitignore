@@ -11,3 +11,6 @@ Package.resolved
 # Xcode
 xcuserdata/
 DerivedData/
+
+# 打包产物
+build/
