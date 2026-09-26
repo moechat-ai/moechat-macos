@@ -8,14 +8,17 @@ on:
 
 jobs:
   build:
-    # Package.swift 要求 .macOS(.v14)，且 swift-tools-version 是 6.0，
-    # 所以要 macOS 15 上的 Xcode 16（自带 Swift 6）。
+    # Package.swift 要求 .macOS(.v14)，swift-tools-version 是 6.0，
+    # 所以要 macOS 15 上自带 Swift 6 的 Xcode。
     runs-on: macos-15
     steps:
       # 两次 checkout 是为了凑出 make-app.sh 要求的目录布局：
       #   $GITHUB_WORKSPACE/moechat-macos/
       #   $GITHUB_WORKSPACE/msglist/dist/
       # 脚本里读的是 $ROOT/../msglist/dist，少这一层会直接 exit 1。
+      #
+      # 注意：checkout 到子目录后，每一步都要显式 cd —— run 的默认工作目录
+      # 始终是 $GITHUB_WORKSPACE，不是子目录。
       - uses: actions/checkout@v4
         with:
           path: moechat-macos
@@ -36,14 +39,18 @@ jobs:
           npm run build
 
       - name: 构建宿主
-        run: swift build
+        run: |
+          cd moechat-macos
+          swift build
 
       - name: 打包 .app
-        run: ./scripts/make-app.sh
+        run: |
+          cd moechat-macos
+          ./scripts/make-app.sh
 
       - name: 上传产物
         uses: actions/upload-artifact@v4
         with:
           name: Moechat-app
-          path: build/Moechat.app
+          path: moechat-macos/build/Moechat.app
           retention-days: 14

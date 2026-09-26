@@ -32,12 +32,14 @@ jobs:
           npm run build
 
       - name: 构建并打包
-        run: ./scripts/make-app.sh release
+        run: |
+          cd moechat-macos
+          ./scripts/make-app.sh release
 
-      # 未经签名与公证，首次打开需要右键 →「打开」。这一点写在 release notes 里。
+      # 未签名未公证，首次打开需要右键 →「打开」
       - name: 压缩
         run: |
-          cd build
+          cd moechat-macos/build
           zip -qry "$GITHUB_WORKSPACE/Moechat-${GITHUB_REF_NAME}-macos.zip" Moechat.app
           cd "$GITHUB_WORKSPACE"
           shasum -a 256 Moechat-*.zip > SHA256SUMS
