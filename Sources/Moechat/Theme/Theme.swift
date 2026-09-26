@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// moechat 的统一视觉语言。
-/// 四端（macOS / iOS / Android / Web）各自原生实现，但共用这一套取值。
+/// 五个原生宿主（macOS / Windows / Linux / iOS / Android）各自实现，但共用这一套取值。
 enum Theme {
     static let background = Color(hex: 0x0A0B0D)
 
