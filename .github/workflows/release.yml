@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: moechat-macos
+
+      - uses: actions/checkout@v4
+        with:
+          repository: moechat-ai/msglist
+          path: msglist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: 构建子应用
+        run: |
+          cd msglist
+          npm ci
+          npm run build
+
+      - name: 构建并打包
+        run: ./scripts/make-app.sh release
+
+      # 未经签名与公证，首次打开需要右键 →「打开」。这一点写在 release notes 里。
+      - name: 压缩
+        run: |
+          cd build
+          zip -qry "$GITHUB_WORKSPACE/Moechat-${GITHUB_REF_NAME}-macos.zip" Moechat.app
+          cd "$GITHUB_WORKSPACE"
+          shasum -a 256 Moechat-*.zip > SHA256SUMS
+
+      - name: 发布
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            Moechat-*.zip SHA256SUMS \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes

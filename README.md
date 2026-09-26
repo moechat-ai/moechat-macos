@@ -1,5 +1,8 @@
 # moechat-macos
 
+[![CI](https://github.com/moechat-ai/moechat-macos/actions/workflows/ci.yml/badge.svg)](https://github.com/moechat-ai/moechat-macos/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/moechat-ai/moechat-macos?color=blue)](https://github.com/moechat-ai/moechat-macos/releases)
+
 moechat 的 macOS 宿主（骨架）。
 
 ## 架构

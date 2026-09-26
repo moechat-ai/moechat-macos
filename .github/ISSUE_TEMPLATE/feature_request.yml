@@ -1,0 +1,31 @@
+name: 功能建议
+description: 提出一个新能力或改进
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 想解决什么问题
+      description: 先说问题，再说方案。只写方案的话，容易做出用不上的东西。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议怎么做
+    validations:
+      required: false
+  - type: dropdown
+    id: quadrant
+    attributes:
+      label: 属于哪个象限
+      description: 归属规则见仓库文档。不确定就选「不确定」。
+      options:
+        - 第 0 象限（时空 / 主体）
+        - 第一象限（肉体）
+        - 第二象限（知识 / 消息）
+        - 第三象限（社会关系）
+        - 第四象限（持有物）
+        - 不确定 / 横跨多个
+    validations:
+      required: true

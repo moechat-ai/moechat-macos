@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Package.swift 要求 .macOS(.v14)，且 swift-tools-version 是 6.0，
+    # 所以要 macOS 15 上的 Xcode 16（自带 Swift 6）。
+    runs-on: macos-15
+    steps:
+      # 两次 checkout 是为了凑出 make-app.sh 要求的目录布局：
+      #   $GITHUB_WORKSPACE/moechat-macos/
+      #   $GITHUB_WORKSPACE/msglist/dist/
+      # 脚本里读的是 $ROOT/../msglist/dist，少这一层会直接 exit 1。
+      - uses: actions/checkout@v4
+        with:
+          path: moechat-macos
+
+      - uses: actions/checkout@v4
+        with:
+          repository: moechat-ai/msglist
+          path: msglist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: 构建子应用
+        run: |
+          cd msglist
+          npm ci
+          npm run build
+
+      - name: 构建宿主
+        run: swift build
+
+      - name: 打包 .app
+        run: ./scripts/make-app.sh
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: Moechat-app
+          path: build/Moechat.app
+          retention-days: 14
