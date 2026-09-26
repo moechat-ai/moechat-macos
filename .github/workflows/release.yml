@@ -37,14 +37,19 @@ jobs:
           ./scripts/make-app.sh release
 
       # 未签名未公证，首次打开需要右键 →「打开」
+      #
+      # 产物落在 moechat-macos/ 里面，不在 $GITHUB_WORKSPACE 根上——
+      # gh release create 需要 git 仓库上下文，而 workspace 根目录没有 .git
+      # （两次 checkout 都在子目录里）。放进仓库目录，working-directory 指过去即可。
       - name: 压缩
         run: |
           cd moechat-macos/build
-          zip -qry "$GITHUB_WORKSPACE/Moechat-${GITHUB_REF_NAME}-macos.zip" Moechat.app
-          cd "$GITHUB_WORKSPACE"
+          zip -qry ../Moechat-${GITHUB_REF_NAME}-macos.zip Moechat.app
+          cd ..
           shasum -a 256 Moechat-*.zip > SHA256SUMS
 
       - name: 发布
+        working-directory: moechat-macos
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
