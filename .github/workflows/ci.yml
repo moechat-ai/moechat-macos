@@ -25,7 +25,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          repository: moechat-ai/msglist
+          repository: concordia-world/msglist
           path: msglist
 
       - uses: actions/setup-node@v4
